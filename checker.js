@@ -3,11 +3,29 @@ const fs = require("fs");
 const path = require("path");
 
 const logFile = path.join(__dirname, "internet-check.log");
-const hosts = ["8.8.8.8", "1.1.1.1", "google.com", "cloudflare.com"];
 
-function logToFile(message) {
-  const timestamp = new Date().toISOString();
-  fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`);
+const hosts = [
+  "8.8.8.8",
+  "1.1.1.1",
+  "google.com",
+  "cloudflare.com",
+  "www.ozon.ru",
+  "www.wildberries.ru",
+  "ya.ru",
+  "149.154.167.99",    // Telegram
+  "157.240.221.60"     // WhatsApp
+];
+
+function timestamp() {
+  const now = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  return `${date} ${time}`;
+}
+
+function log(message) {
+  fs.appendFileSync(logFile, `${message}\n`);
 }
 
 function pingHost(host) {
@@ -16,29 +34,56 @@ function pingHost(host) {
       if (error) {
         resolve({ host, success: false, error: stderr || error.message });
       } else {
-        resolve({ host, success: true, output: stdout });
+        resolve({ host, success: true });
       }
     });
   });
 }
 
 async function checkConnection() {
-  console.log("🔍 Checking internet connectivity...");
-
   const results = await Promise.all(hosts.map(pingHost));
-  const isConnected = results.some(r => r.success);
 
-  if (isConnected) {
-    console.log("🌐 Internet is working.");
-  } else {
+  let isConnected = false;
+
+  for (const result of results) {
+    const line = `[${timestamp()}] ${result.host} => ${result.success ? "OK" : "FAIL"}`;
+    console.log(line);
+
+    if (!result.success) {
+      log(`${line} | Error: ${result.error}`);
+    }
+
+    if (result.success) {
+      isConnected = true;
+    }
+  }
+
+  if (!isConnected) {
+    const msg = `[${timestamp()}] No internet connection detected.`;
     console.log("🚫 No internet connection detected.");
-    let errorDetails = results.map(r =>
-      `Host ${r.host} unreachable. Error: ${r.error || "Unknown"}`
-    ).join("\n");
-    logToFile(`No internet connection detected.\n${errorDetails}\n`);
+    log(msg);
+  } else {
+    console.log("🌐 Internet seems to be working.");
   }
 }
 
-// Запускаем проверку сразу и затем каждые 60 секунд
+// ===== START log at launch =====
+const startLine = `=== START ${timestamp()} ===`;
+console.log(startLine);
+log(startLine);
+
+// ===== Run checker =====
 checkConnection();
-setInterval(checkConnection, 60 * 1000);
+const interval = setInterval(checkConnection, 60 * 1000);
+
+// ===== STOP log on termination =====
+function handleExit() {
+  const stopLine = `=== STOP ${timestamp()} ===`;
+  console.log(stopLine);
+  log(stopLine);
+  clearInterval(interval);
+  process.exit(0);
+}
+
+process.on("SIGINT", handleExit);
+process.on("SIGTERM", handleExit);
