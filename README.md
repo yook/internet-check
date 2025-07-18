@@ -9,13 +9,13 @@
 ## Команды
 Запустить скрипт через PM2:
 ```bash
-pm2 start /home/orangepi/internet-check/checker.js --name internet-check
+pm2 start /home/orangepi/internet-check/checker.js --name internet-checker
 ```
 Проверить статус:
 ```bash
-pm2 status internet-check
+pm2 status internet-checker
 ```
 Посмотреть логи:
 ```bash
-pm2 logs internet-check
+pm2 logs internet-checker
 ```
