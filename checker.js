@@ -12,8 +12,6 @@ const hosts = [
   "www.ozon.ru",
   "www.wildberries.ru",
   "ya.ru",
-  "149.154.167.99",    // Telegram
-  "157.240.221.60"     // WhatsApp
 ];
 
 function timestamp() {
